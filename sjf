@@ -4,21 +4,24 @@ import math
 
 window = tk.Tk()
 window.title("Bowling Simulation")
-window.geometry("960x1080+0+0")
+window.geometry("1300x900")
 
-welcomeLabel = tk.Label(window, text="Willkommen zur Bowling-Simulation der Bowling Island GmbH!", font=("Arial", 20, "bold"), fg="turquoise4", pady=20)
+welcomeLabel = tk.Label(window, text="Willkommen zur Bowling-Simulation der Bowling Island GmbH!",
+                        font=("Arial", 20, "bold"), fg="turquoise4", pady=20)
 welcomeLabel.pack(side="top", anchor="w", pady=5)
 
 bahnLabel = tk.Label(window, text="Welche Bahnnumer?")
 bahnLabel.pack(side="top", anchor="w", pady=5)
 
-bahnSchieberegler = tk.Scale(window, from_=1, to=12, activebackground="turquoise4", troughcolor="LightCyan3", cursor="hand2", orient=tk.HORIZONTAL)
+bahnSchieberegler = tk.Scale(window, from_=1, to=12, activebackground="turquoise4",
+                             troughcolor="LightCyan3", cursor="hand2", orient=tk.HORIZONTAL)
 bahnSchieberegler.pack(side="top", anchor="w", pady=5)
 
 playerLabel = tk.Label(window, text="Wie viele COM-Spieler sollen simuliert werden?")
 playerLabel.pack(side="top", anchor="w", pady=5)
 
-playerSchieberegler = tk.Scale(window, from_=2, to=4, activebackground="turquoise4", troughcolor="LightCyan3", cursor="hand2", orient=tk.HORIZONTAL)
+playerSchieberegler = tk.Scale(window, from_=2, to=4, activebackground="turquoise4",
+                               troughcolor="LightCyan3", cursor="hand2", orient=tk.HORIZONTAL)
 playerSchieberegler.pack(side="top", anchor="w", pady=5)
 
 namenFrame = tk.Frame(window)
@@ -26,6 +29,7 @@ namenFrame.pack(side="top", anchor="w", pady=5)
 
 playerEntries = []
 playerNames = []
+
 
 def update_name_fields(val):
     for widget in namenFrame.winfo_children():
@@ -37,92 +41,97 @@ def update_name_fields(val):
         entry.pack(anchor="w", pady=2)
         playerEntries.append(entry)
 
+
 playerSchieberegler.config(command=update_name_fields)
 update_name_fields(playerSchieberegler.get())
 
-startButton = tk.Button(window, text="Simulation starten", activebackground="turquoise4", cursor="hand2")
+startButton = tk.Button(window, text="Simulation starten",
+                        activebackground="turquoise4", cursor="hand2")
 startButton.pack(side="top", anchor="w", pady=5)
 
-activePlayerLabel = tk.Label(window, text="Geben Sie die Spielernamen ein um fortzufahren.", font=("Arial", 15, "bold"), fg="turquoise4")
+activePlayerLabel = tk.Label(
+    window, text="Geben Sie die Spielernamen ein um fortzufahren.",
+    font=("Arial", 15, "bold"), fg="turquoise4"
+)
 activePlayerLabel.pack(side="top", anchor="n")
 
-canvas = tk.Canvas(window, width=600, height=600, bg="burlywood3", highlightthickness="5", highlightbackground="sienna4")
-canvas.pack(pady=0)
+# Canvas – Bowlingbahn
+canvas = tk.Canvas(window, width=600, height=600, bg="burlywood3",
+                   highlightthickness=5, highlightbackground="sienna4")
+canvas.pack(side="left", padx=20)
 
 # Bahnbegrenzung
 canvas.create_rectangle(0, 0, 50, 600, fill="tan3", outline="sienna4", width=5)
-canvas.create_rectangle(559, 0, 609, 600, fill="tan3", outline="sienna4", width=5)
+canvas.create_rectangle(550, 0, 600, 600, fill="tan3", outline="sienna4", width=5)
 
-# === SCOREBOARD-BEREICH ===
-scoreboardFrame = tk.Frame(window, bg="white", bd=5, relief="ridge")
-scoreboardFrame.pack(side="top", anchor="w", padx=20, pady=20)
+#########################################
+#  SCOREBOARD – KLASSISCHER LOOK
+#########################################
 
-scoreboard_labels = []   # scoreboard_labels[player][frame] = {"t1":..., "t2":..., "sum":...}
-player_scores = []       # player_scores[player][frame] = [wurf1, wurf2, summe_bis_dahin]
+scoreboardFrame = tk.Frame(window, bg="white", bd=4, relief="solid")
+scoreboardFrame.pack(side="right", fill="y", padx=20, pady=20)
+
+scoreboard_labels = []
+player_scores = []
 frames_per_player = 10
-pins_hit_this_throw = 0  # wie viele Pins im aktuellen Wurf gefallen sind
+
 
 def build_scoreboard():
-    """Erzeugt das Scoreboard neu für alle aktuellen Spieler."""
+    """Erzeugt ein klassisches Bowlingcenter-Scoreboard."""
     for widget in scoreboardFrame.winfo_children():
         widget.destroy()
-    scoreboard_labels.clear()
 
-    title = tk.Label(scoreboardFrame, text="SCOREBOARD", font=("Arial", 18, "bold"),
-                     bg="white", fg="turquoise4")
+    # Titel
+    title = tk.Label(scoreboardFrame, text="SCOREBOARD",
+                     font=("Arial", 18, "bold"), fg="black", bg="white")
     title.grid(row=0, column=0, columnspan=frames_per_player + 1, pady=10)
 
+    # Frame-Nummern
+    tk.Label(scoreboardFrame, text="Spieler", font=("Arial", 12, "bold"),
+             bg="white", bd=2, relief="solid", width=10).grid(row=1, column=0)
+
+    for f in range(frames_per_player):
+        tk.Label(scoreboardFrame, text=f"Frame {f+1}",
+                 font=("Arial", 10, "bold"), bg="white",
+                 bd=2, relief="solid", width=12).grid(row=1, column=f + 1)
+
+    # Spielerzeilen
+    scoreboard_labels.clear()
     for p, name in enumerate(playerNames):
-        # Spielername links
-        nameLabel = tk.Label(scoreboardFrame, text=name, font=("Arial", 12, "bold"),
-                             bg="white", fg="black", bd=2, relief="ridge", width=12)
-        nameLabel.grid(row=1 + p*2, column=0, rowspan=2, sticky="nsew", pady=2)
-
         row_labels = []
+
+        nameLabel = tk.Label(scoreboardFrame, text=name, font=("Arial", 12, "bold"),
+                             bg="white", bd=2, relief="solid", width=10)
+        nameLabel.grid(row=p + 2, column=0)
+
         for f in range(frames_per_player):
-            frameBox = tk.Frame(scoreboardFrame, bg="white", bd=2, relief="groove")
-            frameBox.grid(row=1 + p*2, column=1 + f, padx=1, sticky="nsew")
+            frameBox = tk.Frame(scoreboardFrame, bg="white", bd=2, relief="solid")
+            frameBox.grid(row=p + 2, column=f + 1, padx=1, pady=1)
 
-            # obere Zeile: Wurf 1 (links) und Wurf 2 (rechts)
-            throw1 = tk.Label(frameBox, text="", font=("Arial", 10), bg="white")
-            throw1.grid(row=0, column=0, sticky="w", padx=2)
+            t1 = tk.Label(frameBox, text="", font=("Arial", 10), width=4, bg="white")
+            t2 = tk.Label(frameBox, text="", font=("Arial", 10), width=4, bg="white")
+            s = tk.Label(frameBox, text="", font=("Arial", 10, "bold"), bg="white")
 
-            throw2 = tk.Label(frameBox, text="", font=("Arial", 10), bg="white")
-            throw2.grid(row=0, column=1, sticky="e", padx=2)
+            t1.grid(row=0, column=0)
+            t2.grid(row=0, column=1)
+            s.grid(row=1, column=0, columnspan=2)
 
-            # untere Zeile: kumulierte Summe bis zu diesem Frame
-            subtotal = tk.Label(frameBox, text="", font=("Arial", 10, "bold"), bg="white")
-            subtotal.grid(row=1, column=0, columnspan=2)
-
-            row_labels.append({
-                "t1": throw1,
-                "t2": throw2,
-                "sum": subtotal
-            })
+            row_labels.append({"t1": t1, "t2": t2, "sum": s})
 
         scoreboard_labels.append(row_labels)
 
+
 def reset_scores():
-    """Setzt die Datenstruktur für die Punktestände zurück."""
     global player_scores
     player_scores = []
     for _ in playerNames:
-        # 10 Frames, jeder: [wurf1, wurf2, kumulierte_summe]
         player_scores.append([[None, None, 0] for _ in range(frames_per_player)])
 
-def update_scoreboard(player, frame, throw_index, fallen_pins):
-    """Aktualisiert die Scoreboard-Anzeige für einen bestimmten Spieler / Frame / Wurf."""
-    if player < 0 or player >= len(player_scores):
-        return
-    if frame < 0 or frame >= frames_per_player:
-        return
-    if throw_index not in (0, 1):
-        return
 
+def update_scoreboard(player, frame, throw_index, fallen_pins):
     frame_data = player_scores[player][frame]
     frame_data[throw_index] = fallen_pins
 
-    # kumulierte Summe bis zu diesem Frame berechnen
     total = 0
     for i in range(frames_per_player):
         f0 = player_scores[player][i][0] or 0
@@ -130,6 +139,7 @@ def update_scoreboard(player, frame, throw_index, fallen_pins):
         total += f0 + f1
         if i == frame:
             break
+
     frame_data[2] = total
 
     labels = scoreboard_labels[player][frame]
@@ -137,226 +147,164 @@ def update_scoreboard(player, frame, throw_index, fallen_pins):
     labels["t2"].config(text=str(frame_data[1] or 0))
     labels["sum"].config(text=str(total))
 
-# === Globale Strukturen für die Bahn ===
-pins = []  # Liste von (pin_id, x, y, r)
+
+#########################################
+#  BOWLING-FUNKTIONEN
+#########################################
+
+pins = []
 ball_x, ball_y = 300, 500
 ball_radius = 20
 ball_dx, ball_dy = 0, 0
-ball = canvas.create_oval(ball_x-ball_radius, ball_y-ball_radius,
-                          ball_x+ball_radius, ball_y+ball_radius,
+
+ball = canvas.create_oval(ball_x - ball_radius, ball_y - ball_radius,
+                          ball_x + ball_radius, ball_y + ball_radius,
                           fill="turquoise3", outline="turquoise4", width=5)
 
-# Spielzustand
 currentPlayer = 0
 currentThrow = 1
-throws_done = []        # wird in start_simulation initialisiert
-players_active = []     # wird in start_simulation initialisiert
+pins_hit_this_throw = 0
+
+throws_done = []
+players_active = []
+
+pause_between_throws_ms = 800
 total_throws_per_player = 20
-pause_between_throws_ms = 800  # Pause zwischen Würfen in ms
+
 
 def draw_pins():
-    """Zeichnet die 10 Pins in einer Pyramidenform."""
     global pins
-    # alte Pins löschen
     for (pid, _, _, _) in pins:
-        try:
-            canvas.delete(pid)
-        except Exception:
-            pass
+        canvas.delete(pid)
     pins.clear()
 
     r = 15
     x_start = 300
     y_start = 300
-    positions = [
-        [(x_start, y_start)],
-        [(x_start-30, y_start-60), (x_start+30, y_start-60)],
-        [(x_start-60, y_start-120), (x_start, y_start-120), (x_start+60, y_start-120)],
-        [(x_start-90, y_start-180), (x_start-30, y_start-180),
-         (x_start+30, y_start-180), (x_start+90, y_start-180)]
+
+    formation = [
+        [(0, 0)],
+        [(-30, -60), (30, -60)],
+        [(-60, -120), (0, -120), (60, -120)],
+        [(-90, -180), (-30, -180), (30, -180), (90, -180)],
     ]
-    for row in positions:
-        for (x, y) in row:
-            pin_id = canvas.create_oval(x-r, y-r, x+r, y+r,
+
+    for row in formation:
+        for dx, dy in row:
+            x = x_start + dx
+            y = y_start + dy
+            pin_id = canvas.create_oval(x - r, y - r, x + r, y + r,
                                         fill="white", outline="red", width=3)
             pins.append((pin_id, x, y, r))
 
+
 draw_pins()
 
+
 def update_active_player_label():
-    if playerNames:
-        activePlayerLabel.config(
-            text=f"{playerNames[currentPlayer]} | {currentThrow}. Wurf | {throws_done[currentPlayer]}/{total_throws_per_player}",
-            fg="turquoise4"
-        )
-    else:
-        activePlayerLabel.config(text="Noch keine Spielernamen eingegeben", fg="turquoise4")
+    activePlayerLabel.config(
+        text=f"{playerNames[currentPlayer]} – Wurf {currentThrow}",
+        fg="turquoise4"
+    )
 
-def next_active_player_index(start_index):
-    """Gibt den nächsten Index zurück, der noch aktiv ist; wenn keiner, return None."""
-    n = len(playerNames)
-    if n == 0:
-        return None
-    idx = (start_index) % n
-    for _ in range(n):
-        if players_active[idx]:
-            return idx
-        idx = (idx + 1) % n
-    return None
-
-def next_turn():
-    """Wechselt Wurfnummer und ggf. zum nächsten Spieler."""
-    global currentPlayer, currentThrow, ball_x, ball_y, ball_dx, ball_dy
-    # Wechsel der Wurfnummer / Spieler
-    if currentThrow == 1:
-        currentThrow = 2
-    else:
-        currentThrow = 1
-        # nächster aktiver Spieler
-        next_idx = next_active_player_index(currentPlayer + 1)
-        if next_idx is None:
-            # alle fertig
-            currentPlayer = 0
-        else:
-            currentPlayer = next_idx
-
-    # Label aktualisieren
-    update_active_player_label()
-
-    # Kugel zurücksetzen
-    ball_x, ball_y = 300, 500
-    canvas.coords(ball, ball_x - ball_radius, ball_y - ball_radius,
-                  ball_x + ball_radius, ball_y + ball_radius)
-    # ball_dx/ball_dy werden in prepare_throw gesetzt
 
 def check_collision():
-    """Prüft, ob die Kugel Pins trifft und entfernt diese."""
     global pins, pins_hit_this_throw
-    if not pins:
-        return
-    hit_ids = []
-    for (pin_id, px, py, pr) in pins:
-        dx = ball_x - px
-        dy = ball_y - py
-        dist = math.hypot(dx, dy)
-        if dist < (ball_radius + pr):
-            hit_ids.append(pin_id)
-    if hit_ids:
-        for pid in hit_ids:
+    hit = []
+
+    for (pid, px, py, pr) in pins:
+        if math.hypot(ball_x - px, ball_y - py) < ball_radius + pr:
+            hit.append(pid)
+
+    if hit:
+        for pid in hit:
             canvas.delete(pid)
-        # Anzahl gefallener Pins dieses Wurfs hochzählen
-        pins_hit_this_throw += len(hit_ids)
-        pins = [p for p in pins if p[0] not in hit_ids]
+        pins_hit_this_throw += len(hit)
+        pins = [p for p in pins if p[0] not in hit]
+
 
 def move_ball():
-    """Bewegt die Kugel frameweise und behandelt das Ende eines Wurfs."""
-    global ball_y, ball_dy, ball_x, ball_dx
-    # Wenn die Kugel gerade nicht bewegt wird, einfach weiterplanen
+    global ball_x, ball_y, ball_dx, ball_dy
+
     if ball_dx == 0 and ball_dy == 0:
         window.after(10, move_ball)
         return
 
-    ball_y += ball_dy
     ball_x += ball_dx
+    ball_y += ball_dy
+
     canvas.move(ball, ball_dx, ball_dy)
 
     check_collision()
 
-    # Wenn Kugel oben raus ist -> Wurf beendet
-    if ball_y + ball_radius < 0:
-        # Stoppe Kugel
-        ball_dx, ball_dy = 0, 0
-        canvas.coords(ball, 300-ball_radius, 500-ball_radius,
-                      300+ball_radius, 500+ball_radius)
-
-        # Wurf für aktuellen Spieler zählen
-        throws_done[currentPlayer] += 1
-        # Wenn Spieler seine 20 Würfe erreicht hat, markiere als fertig
-        if throws_done[currentPlayer] >= total_throws_per_player:
-            players_active[currentPlayer] = False
-
-        # Kurze Pause, dann Vorbereitung für nächsten Wurf / Spieler
+    if ball_y < -50:
+        ball_dx = ball_dy = 0
+        canvas.coords(ball, 300 - ball_radius, 500 - ball_radius,
+                      300 + ball_radius, 500 + ball_radius)
         window.after(pause_between_throws_ms, handle_end_of_throw)
 
     window.after(10, move_ball)
 
+
 def handle_end_of_throw():
-    """Wird nach jedem Wurf aufgerufen: Scoreboard updaten, Pins ggf. neu aufstellen, Spieler wechseln."""
-    global pins_hit_this_throw
+    global currentThrow, pins_hit_this_throw, throws_done
 
-    # --- Punkte für diesen Wurf ins Scoreboard eintragen ---
-    if playerNames:
-        # welcher Frame? (0-9) -> jeder Frame hat 2 Würfe
-        # throws_done wurde in move_ball schon erhöht, deshalb -1
-        frame_index = (throws_done[currentPlayer] - 1) // 2
-        throw_index = 0 if currentThrow == 1 else 1
-        if 0 <= frame_index < frames_per_player:
-            update_scoreboard(currentPlayer, frame_index, throw_index, pins_hit_this_throw)
+    throws_done[currentPlayer] += 1
 
-    # Zähler für nächste Runde zurücksetzen
+    frame = (throws_done[currentPlayer] - 1) // 2
+    throw_index = 0 if currentThrow == 1 else 1
+
+    update_scoreboard(currentPlayer, frame, throw_index, pins_hit_this_throw)
+
     pins_hit_this_throw = 0
 
-    # Wenn zweiter Wurf war, Pins zurücksetzen
     if currentThrow == 2:
         draw_pins()
+        currentThrow = 1
+        next_player()
+    else:
+        currentThrow = 2
 
-    # Prüfe ob alle Spieler fertig sind
-    if not any(players_active):
-        activePlayerLabel.config(text="Simulation abgeschlossen!", fg="turquoise4")
-        return
-
-    # Nächster Wurf/Spieler vorbereiten
-    next_turn()
+    update_active_player_label()
     prepare_throw()
 
+
+def next_player():
+    global currentPlayer
+    currentPlayer = (currentPlayer + 1) % len(playerNames)
+
+
 def prepare_throw():
-    """Bereitet den nächsten Wurf vor (Position und Richtung der Kugel)."""
-    global ball_dx, ball_dy, ball_x, ball_y, pins_hit_this_throw
-    # Counter für diesen Wurf zurücksetzen
-    pins_hit_this_throw = 0
+    global ball_x, ball_y, ball_dx, ball_dy
 
-    # Wenn aktueller Spieler bereits fertig ist, überspringen
-    if not players_active[currentPlayer]:
-        # direkt zum nächsten Spieler
-        next_turn()
-        # falls alle fertig, handle_end_of_throw hat das bereits abgefangen
-        return
-
-    # Kugel neu positionieren
     ball_x, ball_y = 300, 500
     canvas.coords(ball, ball_x - ball_radius, ball_y - ball_radius,
                   ball_x + ball_radius, ball_y + ball_radius)
 
-    # Zufällige Flugrichtung / Geschwindigkeit
-    ball_dx, ball_dy = random.uniform(-2.0, 2.0), -5
+    ball_dx = random.uniform(-2, 2)
+    ball_dy = -5
+
 
 def start_simulation():
-    """Liest Spielernamen ein und startet die Simulation + Scoreboard."""
-    global playerNames, currentPlayer, currentThrow, ball_dx, ball_dy
-    global throws_done, players_active
+    global playerNames, throws_done, players_active
 
-    anzahl = int(playerSchieberegler.get())
-    playerNames = []
-    for i in range(anzahl):
-        name = playerEntries[i].get().strip() if i < len(playerEntries) else ""
-        playerNames.append(name if name else f"Spieler {i+1}")
+    n = playerSchieberegler.get()
+    playerNames[:] = [
+        (playerEntries[i].get().strip() or f"Spieler {i+1}")
+        for i in range(n)
+    ]
 
-    # Startwerte
-    currentPlayer = 0
-    currentThrow = 1
-    throws_done = [0] * len(playerNames)
-    players_active = [True] * len(playerNames)
+    throws_done = [0] * n
+    players_active = [True] * n
 
-    # Scoreboard neu aufbauen und Daten initialisieren
     build_scoreboard()
     reset_scores()
 
-    update_active_player_label()
-
-    # Pins neu zeichnen und ersten Wurf vorbereiten
     draw_pins()
     prepare_throw()
+    update_active_player_label()
     move_ball()
+
 
 startButton.config(command=start_simulation)
 
