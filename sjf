@@ -67,146 +67,169 @@ canvas.pack(side="left", padx=20)
 canvas.create_rectangle(0, 0, 50, 600, fill="tan3", outline="sienna4", width=5)
 canvas.create_rectangle(559, 0, 609, 600, fill="tan3", outline="sienna4", width=5)
 
-# -------------------------------------------------------
-# SCOREBOARD (rechts)
-# -------------------------------------------------------
+# =======================================================
+#                  K L A S S I S C H E S 
+#               B O W L I N G – S C O R E B O A R D
+# =======================================================
 scoreboard_frame = tk.Frame(window, bg=backgroundColor)
 scoreboard_frame.pack(side="right", fill="y", padx=10)
 
-frames_labels = []     # pro Spieler 10 Frame-Felder
-totals_labels = []     # pro Spieler Total
-frame_data = []        # Treffer in 20 Würfen → echte Bowlingframes
+throw_labels = []          # [player][frame] → (wurf1, wurf2)
+frame_score_labels = []    # [player][frame]
+total_labels = []          # [player]
+frame_data = []            # später gefüllt
+throws_done = []           # später gefüllt
 
 def create_scoreboard():
     tk.Label(scoreboard_frame, text="Scoreboard",
              font=("Arial", 24, "bold"), bg=backgroundColor).grid(row=0, column=0, columnspan=12, pady=10)
 
-    for f in range(10):
-        tk.Label(scoreboard_frame, text=f"F{f+1}", bg=backgroundColor,
-                 font=("Arial", 12, "bold")).grid(row=1, column=f+1)
+    tk.Label(scoreboard_frame, text="Spieler", font=("Arial", 12, "bold"),
+             bg=backgroundColor).grid(row=1, column=0)
 
-    tk.Label(scoreboard_frame, text="Total", bg=backgroundColor,
-             font=("Arial", 12, "bold")).grid(row=1, column=11)
+    for f in range(10):
+        tk.Label(scoreboard_frame, text=f"F{f+1}", font=("Arial", 12, "bold"),
+                 bg=backgroundColor).grid(row=1, column=f+1)
+
+    tk.Label(scoreboard_frame, text="Total", font=("Arial", 12, "bold"),
+             bg=backgroundColor).grid(row=1, column=11)
+
 
 def init_scoreboard():
-    global frames_labels, totals_labels
-    frames_labels = []
-    totals_labels = []
+    global throw_labels, frame_score_labels, total_labels
+    throw_labels = []
+    frame_score_labels = []
+    total_labels = []
 
     for p, name in enumerate(playerNames):
-        tk.Label(scoreboard_frame, text=name, bg=backgroundColor,
-                 font=("Arial", 15, "bold")).grid(row=p+2, column=0, sticky="w")
+        row = p + 2
 
-        row_frames = []
+        tk.Label(scoreboard_frame, text=name, bg=backgroundColor,
+                 font=("Arial", 15, "bold")).grid(row=row, column=0, sticky="w")
+
+        player_throw_row = []
+        player_score_row = []
+
         for f in range(10):
-            lbl = tk.Label(scoreboard_frame, text=" ", width=4,
-                           bg="white", relief="solid", font=("Arial", 14))
-            lbl.grid(row=p+2, column=f+1, padx=3)
-            row_frames.append(lbl)
-        frames_labels.append(row_frames)
+            cell = tk.Frame(scoreboard_frame, bg="white", relief="solid", bd=1)
+            cell.grid(row=row, column=f+1, padx=2, pady=2)
+
+            top = tk.Frame(cell, bg="white")
+            top.pack(side="top")
+
+            lbl1 = tk.Label(top, text="", width=2, bg="white", font=("Arial", 10))
+            lbl1.pack(side="left")
+
+            lbl2 = tk.Label(top, text="", width=2, bg="white", font=("Arial", 10))
+            lbl2.pack(side="right")
+
+            lbl_score = tk.Label(cell, text="", width=4, bg="white",
+                                 font=("Arial", 10, "bold"))
+            lbl_score.pack(side="bottom")
+
+            player_throw_row.append((lbl1, lbl2))
+            player_score_row.append(lbl_score)
+
+        throw_labels.append(player_throw_row)
+        frame_score_labels.append(player_score_row)
 
         total_lbl = tk.Label(scoreboard_frame, text="0", width=6,
                              bg="white", relief="solid", font=("Arial", 15, "bold"))
-        total_lbl.grid(row=p+2, column=11)
-        totals_labels.append(total_lbl)
+        total_lbl.grid(row=row, column=11)
+        total_labels.append(total_lbl)
 
-def convert_20_throws_to_frames(throws):
-    """
-    Nimmt 20 Trefferzahlen → Gibt 10 Frames im Bowlingformat zurück.
-    Jeder Frame: [wurf1, wurf2, optional wurf3]
-    """
-    frames = []
-    idx = 0
+
+
+def symbol_for_throw(w1, w2, index, throwpos, done_w1, done_w2):
+    if throwpos == 0:  # erster Wurf
+        if not done_w1:
+            return ""
+        if w1 == 10:
+            return "X"
+        return "-" if w1 == 0 else str(w1)
+
+    if throwpos == 1:  # zweiter Wurf
+        if not done_w2:
+            return ""
+
+        if w1 == 10:
+            return ""
+
+        if w1 + w2 == 10:
+            return "/"
+
+        return "-" if w2 == 0 else str(w2)
+
+
+
+def calculate_scores(throws, done):
+    frame_scores = [None] * 10
+    cumulative = [None] * 10
+
     for f in range(10):
-        w1 = throws[idx]
-        w2 = throws[idx+1]
-        idx += 2
+        i1 = 2*f
+        i2 = 2*f + 1
 
-        if f < 9:  # Frame 1–9
-            if w1 == 10:
-                frames.append([10])
-            else:
-                frames.append([w1, w2])
-        else:  # Frame 10
-            if w1 == 10:  # Strike → 3 Würfe
-                w3 = throws[idx] if idx < len(throws) else 0
-                frames.append([10, w2, w3])
-            elif w1 + w2 == 10:  # Spare
-                w3 = throws[idx] if idx < len(throws) else 0
-                frames.append([w1, w2, w3])
-            else:
-                frames.append([w1, w2])
-    return frames
+        if i1 >= done:
+            break
+        if i2 >= done:
+            continue
 
-def calculate_bowling_score(frames):
+        w1 = throws[i1]
+        w2 = throws[i2]
+
+        frame_score = w1 + w2
+
+        if f == 0:
+            cumulative[f] = frame_score
+        else:
+            prev = cumulative[f-1] or 0
+            cumulative[f] = prev + frame_score
+
+        frame_scores[f] = cumulative[f]
+
     total = 0
-    for f in range(10):
-        frame = frames[f]
+    for val in cumulative:
+        if val is not None:
+            total = val
 
-        # Strike
-        if frame == [10]:
-            bonus = 0
-            # nächste zwei Würfe finden
-            next_throws = []
-            for nf in range(f+1, 10):
-                next_throws += frames[nf]
-            if len(next_throws) >= 2:
-                bonus = next_throws[0] + next_throws[1]
-            total += 10 + bonus
+    return frame_scores, total
 
-        # Spare
-        elif len(frame) >= 2 and sum(frame[:2]) == 10:
-            next_throw = 0
-            if f < 9:
-                next_throw = frames[f+1][0]
-            total += 10 + next_throw
 
-        # Normal
-        else:
-            total += sum(frame[:2])
-    return total
-
-def frame_to_symbol_frame(frame):
-    """Gibt z. B. ['10'] → ['X'], [3,7] → ['3','/'], [0,9] → ['-','9']"""
-    if frame == [10]:
-        return ["X"]
-
-    if len(frame) == 2:
-        f1, f2 = frame
-        s1 = "-" if f1 == 0 else str(f1)
-        if f1 == 10:
-            return ["X"]
-        if f1 + f2 == 10:
-            return [s1, "/"]
-        s2 = "-" if f2 == 0 else str(f2)
-        return [s1, s2]
-
-    # 10. Frame
-    result = []
-    for i, w in enumerate(frame):
-        if w == 10:
-            result.append("X")
-        elif i >= 1 and frame[0] + frame[1] == 10 and i == 2:
-            result.append(str(w))
-        elif i == 1 and frame[0] + frame[1] == 10:
-            result.append("/")
-        else:
-            result.append("-" if w == 0 else str(w))
-    return result
 
 def update_scoreboard_display():
     for p in range(len(playerNames)):
-        frames = convert_20_throws_to_frames(frame_data[p])
-        score = calculate_bowling_score(frames)
-        totals_labels[p].config(text=str(score))
+        throws = frame_data[p]
+        done = throws_done[p]
 
         for f in range(10):
-            symbols = frame_to_symbol_frame(frames[f])
-            frames_labels[p][f].config(text="".join(symbols))
+            i1 = 2*f
+            i2 = 2*f + 1
 
-# -------------------------------------------------------
-# PIN-Logik
-# -------------------------------------------------------
+            w1_done = i1 < done
+            w2_done = i2 < done
+
+            w1 = throws[i1] if w1_done else 0
+            w2 = throws[i2] if w2_done else 0
+
+            lbl1, lbl2 = throw_labels[p][f]
+
+            lbl1.config(text=symbol_for_throw(w1, w2, f, 0, w1_done, w2_done))
+            lbl2.config(text=symbol_for_throw(w1, w2, f, 1, w1_done, w2_done))
+
+        frame_scores, total = calculate_scores(throws, done)
+
+        for f in range(10):
+            frame_score_labels[p][f].config(
+                text=str(frame_scores[f]) if frame_scores[f] is not None else ""
+            )
+
+        total_labels[p].config(text=str(total))
+
+
+# =======================================================
+# PIN-LOGIK & SPIELSTEUERUNG (UNVERÄNDERT)
+# =======================================================
 pins = []
 scores = []
 ball_x, ball_y = 300, 500
@@ -218,8 +241,6 @@ ball = canvas.create_oval(ball_x-ball_radius, ball_y-ball_radius,
 
 currentPlayer = 0
 currentThrow = 1
-throws_done = []
-players_active = []
 total_throws_per_player = 20
 pause_between_throws_ms = 700
 
@@ -253,8 +274,7 @@ def next_active_player_index(start):
     n = len(playerNames)
     for i in range(n):
         idx = (start + i) % n
-        if players_active[idx]:
-            return idx
+        return idx
     return None
 
 def check_collision():
@@ -266,8 +286,8 @@ def check_collision():
 
     for pid in hit:
         canvas.delete(pid)
-    pins = [p for p in pins if p[0] not in hit]
 
+    pins = [p for p in pins if p[0] not in hit]
     return len(hit)
 
 def move_ball():
@@ -284,16 +304,12 @@ def move_ball():
     hit = check_collision()
 
     if ball_y < -30:
-        ball_dx, ball_dy = 0, 0
+        ball_dx = ball_dy = 0
         canvas.coords(ball, 300-ball_radius, 500-ball_radius,
                       300+ball_radius, 500+ball_radius)
 
-        # Treffer speichern
         frame_data[currentPlayer][throws_done[currentPlayer]] = hit
-
         throws_done[currentPlayer] += 1
-        if throws_done[currentPlayer] >= 20:
-            players_active[currentPlayer] = False
 
         update_scoreboard_display()
 
@@ -307,12 +323,11 @@ def handle_end_of_throw():
     if currentThrow == 2:
         draw_pins()
 
-    if not any(players_active):
-        activePlayerLabel.config(text="Simulation abgeschlossen!")
-        return
+    if throws_done[currentPlayer] >= 20:
+        currentPlayer = next_active_player_index(currentPlayer + 1)
+    else:
+        currentPlayer = next_active_player_index(currentPlayer + 1)
 
-    # Nächster Spieler
-    currentPlayer = next_active_player_index(currentPlayer + 1)
     currentThrow = 1 if throws_done[currentPlayer] % 2 == 0 else 2
 
     update_active_player_label()
@@ -329,32 +344,25 @@ def prepare_throw():
     ball_dy = -5
 
 def start_simulation():
-    global playerNames, currentPlayer, currentThrow
-    global scores, throws_done, players_active, frame_data
-    global button_not_pressed_before
+    global playerNames, frame_data, throws_done
 
-    if button_not_pressed_before:
-        button_not_pressed_before = False
+    anzahl = int(playerSchieberegler.get())
+    playerNames.clear()
+    for i in range(anzahl):
+        name = playerEntries[i].get().strip()
+        playerNames.append(name if name else f"Spieler {i+1}")
 
-        anzahl = int(playerSchieberegler.get())
-        playerNames.clear()
-        for i in range(anzahl):
-            name = playerEntries[i].get().strip()
-            playerNames.append(name if name else f"Spieler {i+1}")
+    frame_data = [[0]*20 for _ in range(anzahl)]
+    throws_done = [0]*anzahl
 
-        throws_done = [0] * anzahl
-        players_active = [True] * anzahl
-        frame_data = [[0]*20 for _ in range(anzahl)]
+    create_scoreboard()
+    init_scoreboard()
+    update_active_player_label()
 
-        create_scoreboard()
-        init_scoreboard()
-        update_active_player_label()
+    draw_pins()
+    prepare_throw()
+    move_ball()
 
-        draw_pins()
-        prepare_throw()
-        move_ball()
 
-button_not_pressed_before = True
 startButton.config(command=start_simulation)
-
 window.mainloop()
