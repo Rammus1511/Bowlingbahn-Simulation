@@ -5,7 +5,7 @@ import math
 window = tk.Tk()
 window.title("Bowling Simulation")
 window.geometry("960x1080+0+0")
-#window.iconbitmap("bowling_island.ico")
+window.iconbitmap("bowling_island.ico")
 backgroundColor = "turquoise3"
 foregroundColor = "black"
 window.config(bg=backgroundColor)
@@ -46,8 +46,7 @@ def update_name_fields(val):
 playerSchieberegler.config(command=update_name_fields)
 update_name_fields(playerSchieberegler.get())
 
-startButton = tk.Button(window, text="Simulation starten",
-                        activebackground="turquoise4", cursor="hand2")
+startButton = tk.Button(window, text="Simulation starten", activebackground="turquoise4", cursor="hand2")
 startButton.pack(side="top", anchor="w", pady=5)
 
 activePlayerLabel = tk.Label(window, text="Geben Sie die Spielernamen ein um fortzufahren.", font=("Arial", 15, "bold"), fg=foregroundColor, bg=backgroundColor)
@@ -154,11 +153,14 @@ ball_x, ball_y = 300, 500
 ball_radius = 20
 ball_dx, ball_dy = 0, 0
 
-ball = canvas.create_oval(ball_x - ball_radius, ball_y - ball_radius, ball_x + ball_radius, ball_y + ball_radius, fill="turquoise3", outline="turquoise4", width=5)
+Colors = ["turquoise3", "firebrick3", "SpringGreen3", "goldenrod1"]
+OutlineColors = ["turquoise4", "firebrick4", "SpringGreen4", "goldenrod4"]
 
 currentPlayer = 0
 currentThrow = 1
 pins_hit_this_throw = 0
+
+ball = canvas.create_oval(ball_x - ball_radius, ball_y - ball_radius, ball_x + ball_radius, ball_y + ball_radius, fill=Colors[currentPlayer], outline=OutlineColors[currentPlayer], width=5)
 
 throws_done = []
 players_active = []
@@ -188,8 +190,7 @@ def draw_pins():
         for dx, dy in row:
             x = x_start + dx
             y = y_start + dy
-            pin_id = canvas.create_oval(x - r, y - r, x + r, y + r,
-                                        fill="white", outline="red", width=3)
+            pin_id = canvas.create_oval(x - r, y - r, x + r, y + r, fill="white", outline="red", width=3)
             pins.append((pin_id, x, y, r))
 
 
@@ -233,8 +234,7 @@ def move_ball():
 
     if ball_y < -50:
         ball_dx = ball_dy = 0
-        canvas.coords(ball, 300 - ball_radius, 500 - ball_radius,
-                      300 + ball_radius, 500 + ball_radius)
+        canvas.coords(ball, 300 - ball_radius, 500 - ball_radius, 300 + ball_radius, 500 + ball_radius)
         window.after(pause_between_throws_ms, handle_end_of_throw)
 
     window.after(10, move_ball)
@@ -271,33 +271,37 @@ def prepare_throw():
     global ball_x, ball_y, ball_dx, ball_dy
 
     ball_x, ball_y = 300, 500
-    canvas.coords(ball, ball_x - ball_radius, ball_y - ball_radius,
-                  ball_x + ball_radius, ball_y + ball_radius)
+    canvas.coords(ball, ball_x - ball_radius, ball_y - ball_radius, ball_x + ball_radius, ball_y + ball_radius)
+    canvas.itemconfig(ball, fill=Colors[currentPlayer], outline=OutlineColors[currentPlayer])
 
     ball_dx = random.uniform(-2, 2)
     ball_dy = -5
 
 
 def start_simulation():
-    global playerNames, throws_done, players_active
+    global button_not_pressed_before, playerNames, currentPlayer, currentThrow, ball_dx, ball_dy, throws_done, players_active, scores
+    # Nur wenn der Startbutton noch nicht zuvor gedrückt wurde
+    if button_not_pressed_before == True:
+        button_not_pressed_before = False
 
-    n = playerSchieberegler.get()
-    playerNames[:] = [
-        (playerEntries[i].get().strip() or f"Spieler {i+1}")
-        for i in range(n)
-    ]
+        n = playerSchieberegler.get()
+        playerNames[:] = [
+            (playerEntries[i].get().strip() or f"Spieler {i+1}")
+            for i in range(n)
+        ]
 
-    throws_done = [0] * n
-    players_active = [True] * n
+        throws_done = [0] * n
+        players_active = [True] * n
 
-    build_scoreboard()
-    reset_scores()
+        build_scoreboard()
+        reset_scores()
 
-    draw_pins()
-    prepare_throw()
-    update_active_player_label()
-    move_ball()
+        draw_pins()
+        prepare_throw()
+        update_active_player_label()
+        move_ball()
 
+button_not_pressed_before = True
 startButton.config(command=start_simulation)
 
 window.mainloop()
