@@ -11,5 +11,4 @@ CREATE TABLE turn_ergebnisse (
     wurf1 INT NOT NULL CHECK (wurf1 BETWEEN 0 AND 10),
     wurf2 INT NOT NULL CHECK (wurf2 BETWEEN 0 AND 10),
     datum DATETIME DEFAULT CURRENT_TIMESTAMP,
-    
 );
