@@ -36,7 +36,7 @@ playerNames = []
 #legt fest wie er sich zur SQL-Datenbank verbindet
 def get_mysql_conn():
     return mysql.connector.connect(
-        host=os.gentenv("DB_HOST", "192.168.10.2"), 
+        host=os.gentenv("DB_HOST", "192.168.10.2"), #fuer tests statt "192.168.10.2" > "localhost" damit testen wir die funktion unserer Logik erstmal lokal
         port=int(os.gentenv("DB_PORT", "3306")),
         database=os.gentenv("DB_NAME", "bowling"), #maybe brauchen wir den tatsaechlichen Namen der Datenbank
         user=os.gentenv("DB_USER", "appuser"),
@@ -314,3 +314,4 @@ button_not_pressed_before = True
 startButton.config(command=start_simulation)
 
 window.mainloop()
+
