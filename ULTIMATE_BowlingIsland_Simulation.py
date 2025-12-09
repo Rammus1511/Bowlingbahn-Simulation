@@ -305,4 +305,3 @@ button_not_pressed_before = True
 startButton.config(command=start_simulation)
 
 window.mainloop()
-
