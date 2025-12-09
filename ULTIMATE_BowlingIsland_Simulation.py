@@ -6,7 +6,7 @@ window = tk.Tk()
 window.title("Bowling Simulation")
 window.geometry("960x1080+0+0")
 window.iconbitmap("bowling_island.ico")
-backgroundColor = "turquoise3"
+backgroundColor = "burlywood3"
 foregroundColor = "black"
 window.config(bg=backgroundColor)
 
@@ -305,3 +305,4 @@ button_not_pressed_before = True
 startButton.config(command=start_simulation)
 
 window.mainloop()
+
