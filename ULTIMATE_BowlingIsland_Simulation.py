@@ -31,7 +31,6 @@ namenFrame.pack(side="top", anchor="w", pady=5)
 playerEntries = []
 playerNames = []
 
-
 def update_name_fields(val):
     for widget in namenFrame.winfo_children():
         widget.destroy()
@@ -78,13 +77,11 @@ def build_scoreboard():
         widget.destroy()
 
     # Titel
-    title = tk.Label(scoreboardFrame, text="SCOREBOARD",
-                     font=("Arial", 18, "bold"), fg="black", bg="white")
+    title = tk.Label(scoreboardFrame, text="SCOREBOARD", font=("Arial", 18, "bold"), fg="black", bg="white")
     title.grid(row=0, column=0, columnspan=frames_per_player + 1, pady=10)
 
     # Frame-Nummern
-    tk.Label(scoreboardFrame, text="Spieler", font=("Arial", 12, "bold"),
-             bg="white", bd=2, relief="solid", width=10).grid(row=1, column=0)
+    tk.Label(scoreboardFrame, text="Spieler", font=("Arial", 12, "bold"), bg="white", bd=2, relief="solid", width=10).grid(row=1, column=0)
 
     for f in range(frames_per_player):
         tk.Label(scoreboardFrame, text=f"Runde {f+1}",
@@ -96,8 +93,7 @@ def build_scoreboard():
     for p, name in enumerate(playerNames):
         row_labels = []
 
-        nameLabel = tk.Label(scoreboardFrame, text=name, font=("Arial", 12, "bold"),
-                             bg="white", bd=2, relief="solid", width=10)
+        nameLabel = tk.Label(scoreboardFrame, text=name, font=("Arial", 12, "bold"), bg="white", bd=2, relief="solid", width=10)
         nameLabel.grid(row=p + 2, column=0)
 
         for f in range(frames_per_player):
@@ -175,7 +171,7 @@ def draw_pins():
         canvas.delete(pid)
     pins.clear()
 
-    r = 15
+    r = 12
     x_start = 300
     y_start = 300
 
@@ -275,7 +271,7 @@ def prepare_throw():
     canvas.itemconfig(ball, fill=Colors[currentPlayer], outline=OutlineColors[currentPlayer])
 
     ball_dx = random.uniform(-2, 2)
-    ball_dy = -5
+    ball_dy = -7
 
 
 def start_simulation():
