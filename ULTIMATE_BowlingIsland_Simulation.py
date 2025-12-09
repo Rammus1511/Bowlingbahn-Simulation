@@ -141,6 +141,7 @@ def update_scoreboard(player, frame, throw_index, fallen_pins):
         f0 = player_scores[player][i][0] or 0
         f1 = player_scores[player][i][1] or 0
         total += f0 + f1
+        #TODO here sql logic for saving data (Player, Bahn, Frame, Throw1, Throw2, Zwischenergebnis)
         if i == frame:
             break
 
