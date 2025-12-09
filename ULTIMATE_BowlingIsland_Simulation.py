@@ -1,6 +1,8 @@
 import tkinter as tk
 import random
 import math
+import os
+import mysql.connector
 
 window = tk.Tk()
 window.title("Bowling Simulation")
@@ -30,6 +32,16 @@ namenFrame.pack(side="top", anchor="w", pady=5)
 
 playerEntries = []
 playerNames = []
+
+#legt fest wie er sich zur SQL-Datenbank verbindet
+def get_mysql_conn():
+    return mysql.connector.connect(
+        host=os.gentenv("DB_HOST", "192.168.10.2"), 
+        port=int(os.gentenv("DB_PORT", "3306")),
+        database=os.gentenv("DB_NAME", "bowling"), #maybe brauchen wir den tatsaechlichen Namen der Datenbank
+        user=os.gentenv("DB_USER", "appuser"),
+        password=os.gentenv("DB_PASSWORD", "Pa$$w0rd"), #brauchen wir vielleicht
+    )
 
 def update_name_fields(val):
     for widget in namenFrame.winfo_children():
