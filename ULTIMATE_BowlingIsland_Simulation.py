@@ -2,7 +2,7 @@ import tkinter as tk
 import random
 import math
 import os
-import mysql.connector
+import pyodbc
 
 window = tk.Tk()
 window.title("Bowling Simulation")
@@ -34,13 +34,14 @@ playerEntries = []
 playerNames = []
 
 #legt fest wie er sich zur SQL-Datenbank verbindet
-def get_mysql_conn():
-    return mysql.connector.connect(
-        host=os.gentenv("DB_HOST", "192.168.10.2"), #fuer tests statt "192.168.10.2" > "localhost" damit testen wir die funktion unserer Logik erstmal lokal
-        port=int(os.gentenv("DB_PORT", "3306")),
-        database=os.gentenv("DB_NAME", "bowling"), #maybe brauchen wir den tatsaechlichen Namen der Datenbank
-        user=os.gentenv("DB_USER", "appuser"),
-        password=os.gentenv("DB_PASSWORD", "Pa$$w0rd"), #brauchen wir vielleicht
+def get_sqlserver_conn():
+    conn_str = (
+        "DRIVER={ODBC Driver 18 for SQL Server};"
+        f"SERVER={os.getenv('DB_HOST', 'localhost')},{os.getenv('DB_PORT', '1433')};"
+        f"DATABASE={os.getenv('DB_NAME', 'bowling')};"
+        f"UID={os.getenv('DB_USER', 'appuser')};"
+        f"PWD={os.getenv('DB_PASSWORD', 'Pa$$w0rd')};"
+        "Encrypt=yes;TrustServerCertificate=yes;"
     )
 
 def update_name_fields(val):
@@ -133,16 +134,23 @@ def reset_scores():
 
 def upsert_frame_score(player_name: str, lane: int, frame: int, throw1: int, throw2: int, frame_total: int):
     sql = """
-        INSERT INFO turn_ergebnisse (lane_id, player_id, frame, throw1, throw2, frame_total)
-        VALUES (%s, %s, %s, %s, %s, %s)
-        ON DUPLICATE KEY UPDATE
-        wurf1 = VALUES(throw1),
-        wurf2 = VALUES(throw2),
-        frame_total = VALUES(frame_total)
+        MERGE dbo.turn_ergebnisse AS target
+        USING (VALUES (?, ?, ?, ?, ?, ?)) AS src (player_id, lane_id, frame, throw1, throw2, frame_total)
+        ON target.player_id = src.player_id
+        AND target.lane_id = src.lane_id
+        AND target.frame = src.frame
+        WHEN MATCHED THEN
+        UPDATE SET
+        target.throw1 = src.throw1
+        target.throw2 = src.throw2
+        target.frame_total = src.frame_total
+        WHEN NOT MATCHED THEN
+        INSERT (player_id, lane_id, frame, throw1, throw2, frame_total)
+        VALUES (src.player_id, src.lane_id, src.frame, src.throw1, src.throw2, src.frame_total);
         """
     conn = None
     try:
-        conn = get_mysql_conn()
+        conn = get_sqlserver_conn()
         cur = conn.cursor()
         cur.execute(sql, (lane, player_name, frame, throw1, throw2, frame_total))
         conn.commit()
