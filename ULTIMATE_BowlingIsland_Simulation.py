@@ -6,7 +6,7 @@ import pyodbc
 
 window = tk.Tk()
 window.title("Bowling Simulation")
-window.geometry("960x1080+0+0")
+window.geometry("1920x1080")
 window.iconbitmap("bowling_island.ico")
 backgroundColor = "burlywood3"
 foregroundColor = "black"
@@ -351,5 +351,6 @@ button_not_pressed_before = True
 startButton.config(command=start_simulation)
 
 window.mainloop()
+
 
 
