@@ -131,6 +131,28 @@ def reset_scores():
     for _ in playerNames:
         player_scores.append([[None, None, 0] for _ in range(frames_per_player)])
 
+def upsert_frame_score(player_name: str, lane: int, frame: int, throw1: int, throw2: int, frame_total: int):
+    sql = """
+        INSERT INFO turn_ergebnisse (lane_id, player_id, turn_nr, throw1, throw2, frame_total)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        ON DUPLICATE KEY UPDATE
+        wurf1 = VALUES(throw1),
+        wurf2 = VALUES(throw2),
+        zwischen_ergebnis = VALUES(frame_total)
+        """
+    conn = None
+    try:
+        conn = get_mysql_conn()
+        cur = conn.cursor()
+        cur.execute(sql, (player_name, lane, frame, throw1, throw2, frame_total))
+        conn.commit()
+    except Exception:
+        if conn:
+            conn.rollback()
+        raise
+    finally:
+        if conn:
+            conn.close()
 
 def update_scoreboard(player, frame, throw_index, fallen_pins):
     frame_data = player_scores[player][frame]
@@ -141,7 +163,7 @@ def update_scoreboard(player, frame, throw_index, fallen_pins):
         f0 = player_scores[player][i][0] or 0
         f1 = player_scores[player][i][1] or 0
         total += f0 + f1
-        #TODO here sql logic for saving data (Player, Bahn, Frame, Throw1, Throw2, Zwischenergebnis)
+        #TODO here sql logic for saving data (Player, Bahn, Frame, throw1, throw2, Zwischenergebnis)
         if i == frame:
             break
 

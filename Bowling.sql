@@ -5,10 +5,11 @@ COLLATE utf8mb4_unicode_ci;
 USE bowling;
 CREATE TABLE turn_ergebnisse (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    bahn_id INT NOT NULL,
-    spieler_id INT NOT NULL,
+    lane_id INT NOT NULL,
+    player_id INT NOT NULL,
     turn_nr INT NOT NULL CHECK (turn_nr BETWEEN 1 AND 10),
-    wurf1 INT NOT NULL CHECK (wurf1 BETWEEN 0 AND 10),
-    wurf2 INT NOT NULL CHECK (wurf2 BETWEEN 0 AND 10),
+    throw1 INT NOT NULL CHECK (wurf1 BETWEEN 0 AND 10),
+    throw2 INT NOT NULL CHECK (wurf2 BETWEEN 0 AND 10),
+    frame_total INT NOT NULL,
     datum DATETIME DEFAULT CURRENT_TIMESTAMP,
 );
