@@ -38,9 +38,9 @@ playerNames = []
 def get_sqlserver_conn():
     conn_str = (
         "DRIVER={ODBC Driver 18 for SQL Server};"
-        f"SERVER={os.getenv('DB_HOST', 'localhost')},{os.getenv('DB_PORT', '1433')};"
-        f"DATABASE={os.getenv('DB_NAME', 'bowling')};"
-        f"UID={os.getenv('DB_USER', 'appuser')};"
+        f"SERVER={os.getenv('DB_HOST', '192.168.10.2')},{os.getenv('DB_PORT', '1433')};"
+        f"DATABASE={os.getenv('DB_NAME', 'BowlingSuite')};"
+        f"UID={os.getenv('DB_USER', 'Administrator')};"
         f"PWD={os.getenv('DB_PASSWORD', 'Pa$$w0rd')};"
         "Encrypt=yes;TrustServerCertificate=yes;"
     )
@@ -136,17 +136,20 @@ def reset_scores():
 def upsert_frame_score(player_name: str, lane: int, frame: int, throw1: int, throw2: int, frame_total: int):
     sql = """
         MERGE dbo.turn_ergebnisse AS target
-        USING (VALUES (?, ?, ?, ?, ?, ?)) AS src (player_id, lane_id, frame, throw1, throw2, frame_total)
-        ON target.player_id = src.player_id
+        USING (VALUES (?, ?, ?, ?, ?, ?)) 
+              AS src (player_name, lane_id, frame, throw1, throw2, frame_total)
+        ON  target.player_name = src.player_name
         AND target.lane_id = src.lane_id
         AND target.frame = src.frame
+        
         WHEN MATCHED THEN
             UPDATE SET target.throw1 = src.throw1,
                        target.throw2 = src.throw2,
                        target.frame_total = src.frame_total
+        
         WHEN NOT MATCHED THEN
-            INSERT (player_id, lane_id, frame, throw1, throw2, frame_total)
-            VALUES (src.player_id, src.lane_id, src.frame, src.throw1, src.throw2, src.frame_total);
+            INSERT (player_name, lane_id, frame, throw1, throw2, frame_total)
+            VALUES (src.player_name, src.lane_id, src.frame, src.throw1, src.throw2, src.frame_total);
     """
     conn = None
     try:
@@ -165,39 +168,32 @@ def upsert_frame_score(player_name: str, lane: int, frame: int, throw1: int, thr
 
 
 # ---------- FIXED update_scoreboard ----------
-def update_scoreboard(player, frame, throw_index, fallen_pins):
-    frame_data = player_scores[player][frame]
+def update_scoreboard(player, frame_index, db_frame, throw_index, fallen_pins):
+    frame_data = player_scores[player][frame_index]
     frame_data[throw_index] = fallen_pins
-
-    total = 0
-    for i in range(frames_per_player):
-        f0 = player_scores[player][i][0] or 0
-        f1 = player_scores[player][i][1] or 0
-        total += f0 + f1
-        if i == frame:
-            break
-
-    frame_data[2] = total
 
     throw1 = frame_data[0] or 0
     throw2 = frame_data[1] or 0
+    frame_sum = throw1 + throw2
+    frame_data[2] = frame_sum
 
-    try:
-        upsert_frame_score(
-            playerNames[player],
-            bahnSchieberegler.get(),
-            frame,
-            throw1,
-            throw2,
-            total
-        )
-    except Exception as e:
-        print("SQL ERROR:", e)
+    if throw_index == 1:
+        try:
+            upsert_frame_score(
+                playerNames[player],
+                bahnSchieberegler.get(),
+                db_frame,
+                throw1,
+                throw2,
+                frame_sum
+            )
+        except Exception as e:
+            print("SQL ERROR:", e)
 
-    labels = scoreboard_labels[player][frame]
+    labels = scoreboard_labels[player][frame_index]
     labels["t1"].config(text=str(throw1))
     labels["t2"].config(text=str(throw2))
-    labels["sum"].config(text=str(total))
+    labels["sum"].config(text=str(frame_sum))
 
 
 
@@ -298,14 +294,24 @@ def move_ball():
     window.after(10, move_ball)
 
 
+
+# ---------- FIXED FRAME LOGIC ----------
 def handle_end_of_throw():
     global currentThrow, pins_hit_this_throw, throws_done
 
     throws_done[currentPlayer] += 1
-    frame = (throws_done[currentPlayer] - 1) // 2
+
+    # Frame 0–9 für Scoreboard
+    frame_index = (throws_done[currentPlayer] - 1) // 2
+    if frame_index > 9:
+        frame_index = 9
+
+    # Frame 1–10 für SQL
+    db_frame = frame_index + 1
+
     throw_index = 0 if currentThrow == 1 else 1
 
-    update_scoreboard(currentPlayer, frame, throw_index, pins_hit_this_throw)
+    update_scoreboard(currentPlayer, frame_index, db_frame, throw_index, pins_hit_this_throw)
 
     pins_hit_this_throw = 0
 
@@ -318,6 +324,7 @@ def handle_end_of_throw():
 
     update_active_player_label()
     prepare_throw()
+
 
 
 def next_player():
