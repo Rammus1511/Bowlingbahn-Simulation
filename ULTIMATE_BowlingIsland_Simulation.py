@@ -7,7 +7,7 @@ import pyodbc
 window = tk.Tk()
 window.title("Bowling Simulation")
 window.geometry("960x1080+0+0")
-window.iconbitmap("bowling_island.ico")
+#window.iconbitmap("bowling_island.ico")
 backgroundColor = "burlywood3"
 foregroundColor = "black"
 window.config(bg=backgroundColor)
@@ -37,12 +37,12 @@ playerNames = []
 # ---------- SQL CONNECTION ----------
 def get_sqlserver_conn():
     conn_str = (
-        "DRIVER={ODBC Driver 18 for SQL Server};"
+        "DRIVER={ODBC Driver 17 for SQL Server};"
         f"SERVER={os.getenv('DB_HOST', '192.168.10.2')},{os.getenv('DB_PORT', '1433')};"
         f"DATABASE={os.getenv('DB_NAME', 'BowlingSuite')};"
-        f"UID={os.getenv('DB_USER', 'Administrator')};"
+        f"UID={os.getenv('DB_USER', 'User')};"
         f"PWD={os.getenv('DB_PASSWORD', 'Pa$$w0rd')};"
-        "Encrypt=yes;TrustServerCertificate=yes;"
+        "Encrypt=no;" #TrustServerCertificate=yes
     )
     return pyodbc.connect(conn_str)
 
@@ -130,24 +130,23 @@ def reset_scores():
     for _ in playerNames:
         player_scores.append([[None, None, 0] for _ in range(frames_per_player)])
 
-
-
 # ---------- SQL SAVE ----------
 def upsert_frame_score(player_name: str, lane: int, frame: int, throw1: int, throw2: int, frame_total: int):
     sql = """
-        MERGE dbo.turn_ergebnisse AS target
-        USING (VALUES (?, ?, ?, ?, ?, ?)) AS src (player_id, lane_id, frame, throw1, throw2, frame_total)
-        ON target.player_id = src.player_id
-        AND target.lane_id = src.lane_id
-        AND target.frame = src.frame
+         MERGE core.turn_ergebnisse AS target
+        USING (VALUES (?, ?, ?, ?, ?, ?)) AS src (spieler, bahn_id, turn_nr, wurf1, wurf2, turn_ergebnisse)
+        ON target.spieler = src.spieler
+        AND target.bahn_id = src.bahn_id
+        AND target.turn_nr = src.turn_nr
         WHEN MATCHED THEN
-            UPDATE SET target.throw1 = src.throw1,
-                       target.throw2 = src.throw2,
-                       target.frame_total = src.frame_total
+            UPDATE SET target.wurf1 = src.wurf1,
+                       target.wurf2 = src.wurf2,
+                       target.turn_ergebnisse = src.turn_ergebnisse
         WHEN NOT MATCHED THEN
-            INSERT (player_id, lane_id, frame, throw1, throw2, frame_total)
-            VALUES (src.player_id, src.lane_id, src.frame, src.throw1, src.throw2, src.frame_total);
+            INSERT (spieler, bahn_id, turn_nr, wurf1, wurf2, turn_ergebnisse)
+            VALUES (src.spieler, src.bahn_id, src.turn_nr, src.wurf1, src.wurf2, src.turn_ergebnisse);
     """
+    
     conn = None
     try:
         conn = get_sqlserver_conn()
@@ -181,7 +180,7 @@ def update_scoreboard(player, frame, throw_index, fallen_pins):
 
     throw1 = frame_data[0] or 0
     throw2 = frame_data[1] or 0
-    
+
     if throw_index == 1:
         try:
             upsert_frame_score(
@@ -304,6 +303,7 @@ def handle_end_of_throw():
 
     throws_done[currentPlayer] += 1
     frame = (throws_done[currentPlayer] - 1) // 2
+
     throw_index = 0 if currentThrow == 1 else 1
 
     update_scoreboard(currentPlayer, frame, throw_index, pins_hit_this_throw)
@@ -358,7 +358,7 @@ def start_simulation():
         prepare_throw()
         update_active_player_label()
         move_ball()
-
+print(pyodbc.drivers())
 
 button_not_pressed_before = True
 startButton.config(command=start_simulation)
