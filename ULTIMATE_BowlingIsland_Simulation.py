@@ -6,7 +6,7 @@ import pyodbc
 
 window = tk.Tk()
 window.title("Bowling Simulation")
-window.geometry("1920x1080")
+window.geometry("960x1080+0+0")
 window.iconbitmap("bowling_island.ico")
 backgroundColor = "burlywood3"
 foregroundColor = "black"
@@ -33,7 +33,8 @@ namenFrame.pack(side="top", anchor="w", pady=5)
 playerEntries = []
 playerNames = []
 
-#legt fest wie er sich zur SQL-Datenbank verbindet
+
+# ---------- SQL CONNECTION ----------
 def get_sqlserver_conn():
     conn_str = (
         "DRIVER={ODBC Driver 18 for SQL Server};"
@@ -43,7 +44,11 @@ def get_sqlserver_conn():
         f"PWD={os.getenv('DB_PASSWORD', 'Pa$$w0rd')};"
         "Encrypt=yes;TrustServerCertificate=yes;"
     )
+    return pyodbc.connect(conn_str)
 
+
+
+# ---------- PLAYER NAME INPUT ----------
 def update_name_fields(val):
     for widget in namenFrame.winfo_children():
         widget.destroy()
@@ -64,18 +69,16 @@ startButton.pack(side="top", anchor="w", pady=5)
 activePlayerLabel = tk.Label(window, text="Geben Sie die Spielernamen ein um fortzufahren.", font=("Arial", 15, "bold"), fg=foregroundColor, bg=backgroundColor)
 activePlayerLabel.pack(side="top", anchor="n")
 
-# Canvas – Bowlingbahn
+
+# ---------- CANVAS ----------
 canvas = tk.Canvas(window, width=600, height=600, bg="burlywood3", highlightthickness=5, highlightbackground="sienna4")
 canvas.pack(side="left", padx=20)
 
-# Bahnbegrenzung
 canvas.create_rectangle(0,0,50,600, fill="tan3", outline="sienna4", width=5)
 canvas.create_rectangle(559,0,609,600, fill="tan3", outline="sienna4", width=5)
 
-#########################################
-#  SCOREBOARD – KLASSISCHER LOOK
-#########################################
 
+# ---------- SCOREBOARD ----------
 scoreboardFrame = tk.Frame(window, bg="white", bd=4, relief="solid")
 scoreboardFrame.pack(side="right", fill="y", padx=20, pady=20)
 
@@ -85,28 +88,24 @@ frames_per_player = 10
 
 
 def build_scoreboard():
-    """Erzeugt ein klassisches Bowlingcenter-Scoreboard."""
     for widget in scoreboardFrame.winfo_children():
         widget.destroy()
 
-    # Titel
     title = tk.Label(scoreboardFrame, text="SCOREBOARD", font=("Arial", 18, "bold"), fg="black", bg="white")
     title.grid(row=0, column=0, columnspan=frames_per_player + 1, pady=10)
 
-    # Frame-Nummern
     tk.Label(scoreboardFrame, text="Spieler", font=("Arial", 12, "bold"), bg="white", bd=2, relief="solid", width=10).grid(row=1, column=0)
 
     for f in range(frames_per_player):
-        tk.Label(scoreboardFrame, text=f"Runde {f+1}",
-                 font=("Arial", 10, "bold"), bg="white",
+        tk.Label(scoreboardFrame, text=f"Runde {f+1}", font=("Arial", 10, "bold"), bg="white",
                  bd=2, relief="solid", width=12).grid(row=1, column=f + 1)
 
-    # Spielerzeilen
     scoreboard_labels.clear()
     for p, name in enumerate(playerNames):
         row_labels = []
 
-        nameLabel = tk.Label(scoreboardFrame, text=name, font=("Arial", 12, "bold"), bg="white", bd=2, relief="solid", width=10)
+        nameLabel = tk.Label(scoreboardFrame, text=name, font=("Arial", 12, "bold"), bg="white",
+                             bd=2, relief="solid", width=10)
         nameLabel.grid(row=p + 2, column=0)
 
         for f in range(frames_per_player):
@@ -116,7 +115,6 @@ def build_scoreboard():
             t1 = tk.Label(frameBox, text="", font=("Arial", 10), width=4, bg="white")
             t2 = tk.Label(frameBox, text="", font=("Arial", 10), width=4, bg="white")
             s = tk.Label(frameBox, text="", font=("Arial", 10, "bold"), bg="white")
-
             t1.grid(row=0, column=0)
             t2.grid(row=0, column=1)
             s.grid(row=1, column=0, columnspan=2)
@@ -132,6 +130,9 @@ def reset_scores():
     for _ in playerNames:
         player_scores.append([[None, None, 0] for _ in range(frames_per_player)])
 
+
+
+# ---------- SQL SAVE ----------
 def upsert_frame_score(player_name: str, lane: int, frame: int, throw1: int, throw2: int, frame_total: int):
     sql = """
         MERGE dbo.turn_ergebnisse AS target
@@ -140,28 +141,30 @@ def upsert_frame_score(player_name: str, lane: int, frame: int, throw1: int, thr
         AND target.lane_id = src.lane_id
         AND target.frame = src.frame
         WHEN MATCHED THEN
-        UPDATE SET
-        target.throw1 = src.throw1
-        target.throw2 = src.throw2
-        target.frame_total = src.frame_total
+            UPDATE SET target.throw1 = src.throw1,
+                       target.throw2 = src.throw2,
+                       target.frame_total = src.frame_total
         WHEN NOT MATCHED THEN
-        INSERT (player_id, lane_id, frame, throw1, throw2, frame_total)
-        VALUES (src.player_id, src.lane_id, src.frame, src.throw1, src.throw2, src.frame_total);
-        """
+            INSERT (player_id, lane_id, frame, throw1, throw2, frame_total)
+            VALUES (src.player_id, src.lane_id, src.frame, src.throw1, src.throw2, src.frame_total);
+    """
     conn = None
     try:
         conn = get_sqlserver_conn()
         cur = conn.cursor()
-        cur.execute(sql, (lane, player_name, frame, throw1, throw2, frame_total))
+        cur.execute(sql, (player_name, lane, frame, throw1, throw2, frame_total))
         conn.commit()
-    except Exception:
+    except Exception as e:
+        print("SQL ERROR:", e)
         if conn:
             conn.rollback()
-        raise
     finally:
         if conn:
             conn.close()
 
+
+
+# ---------- FIXED update_scoreboard ----------
 def update_scoreboard(player, frame, throw_index, fallen_pins):
     frame_data = player_scores[player][frame]
     frame_data[throw_index] = fallen_pins
@@ -171,29 +174,34 @@ def update_scoreboard(player, frame, throw_index, fallen_pins):
         f0 = player_scores[player][i][0] or 0
         f1 = player_scores[player][i][1] or 0
         total += f0 + f1
-        #TODO here sql logic for saving data (Player, Bahn, Frame, Throw1, Throw2, Zwischenergebnis)
-        
         if i == frame:
-            throw1 = frame_data[0] or 0 
-            throw2 = frame_data[1] or 0
             break
-        
-        upsert_frame_score(player, bahnSchieberegler.get, frame, throw1, throw2, total)
-        break
-        
 
     frame_data[2] = total
 
+    throw1 = frame_data[0] or 0
+    throw2 = frame_data[1] or 0
+
+    try:
+        upsert_frame_score(
+            playerNames[player],
+            bahnSchieberegler.get(),
+            frame,
+            throw1,
+            throw2,
+            total
+        )
+    except Exception as e:
+        print("SQL ERROR:", e)
+
     labels = scoreboard_labels[player][frame]
-    labels["t1"].config(text=str(frame_data[0] or 0))
-    labels["t2"].config(text=str(frame_data[1] or 0))
+    labels["t1"].config(text=str(throw1))
+    labels["t2"].config(text=str(throw2))
     labels["sum"].config(text=str(total))
 
 
-#########################################
-#  BOWLING-FUNKTIONEN
-#########################################
 
+# ---------- BOWLING LOGIC ----------
 pins = []
 ball_x, ball_y = 300, 500
 ball_radius = 20
@@ -206,7 +214,9 @@ currentPlayer = 0
 currentThrow = 1
 pins_hit_this_throw = 0
 
-ball = canvas.create_oval(ball_x - ball_radius, ball_y - ball_radius, ball_x + ball_radius, ball_y + ball_radius, fill=Colors[currentPlayer], outline=OutlineColors[currentPlayer], width=5)
+ball = canvas.create_oval(ball_x - ball_radius, ball_y - ball_radius,
+                          ball_x + ball_radius, ball_y + ball_radius,
+                          fill=Colors[currentPlayer], outline=OutlineColors[currentPlayer], width=5)
 
 throws_done = []
 players_active = []
@@ -236,8 +246,9 @@ def draw_pins():
         for dx, dy in row:
             x = x_start + dx
             y = y_start + dy
-            pin_id = canvas.create_oval(x - r, y - r, x + r, y + r, fill="white", outline="red", width=3)
-            pins.append((pin_id, x, y, r))
+            pid = canvas.create_oval(x - r, y - r, x + r, y + r,
+                                     fill="white", outline="red", width=3)
+            pins.append((pid, x, y, r))
 
 
 draw_pins()
@@ -247,11 +258,11 @@ def update_active_player_label():
     if playerNames:
         activePlayerLabel.config(text=f"{playerNames[currentPlayer]} | {currentThrow}. Wurf ({throws_done[currentPlayer]}/{total_throws_per_player})")
     else:
-        activePlayerLabel.config(text="Noch keine Spielernamen eingegeben...", fg=foregroundColor)
+        activePlayerLabel.config(text="Noch keine Spielernamen eingegeben...")
 
 
 def check_collision():
-    global pins, pins_hit_this_throw, scores
+    global pins, pins_hit_this_throw
     hit = []
 
     for (pid, px, py, pr) in pins:
@@ -264,6 +275,7 @@ def check_collision():
         pins_hit_this_throw += len(hit)
         pins = [p for p in pins if p[0] not in hit]
 
+
 def move_ball():
     global ball_x, ball_y, ball_dx, ball_dy
 
@@ -273,14 +285,14 @@ def move_ball():
 
     ball_x += ball_dx
     ball_y += ball_dy
-
     canvas.move(ball, ball_dx, ball_dy)
 
     check_collision()
 
     if ball_y < -50:
         ball_dx = ball_dy = 0
-        canvas.coords(ball, 300 - ball_radius, 500 - ball_radius, 300 + ball_radius, 500 + ball_radius)
+        canvas.coords(ball, 300 - ball_radius, 500 - ball_radius,
+                      300 + ball_radius, 500 + ball_radius)
         window.after(pause_between_throws_ms, handle_end_of_throw)
 
     window.after(10, move_ball)
@@ -290,7 +302,6 @@ def handle_end_of_throw():
     global currentThrow, pins_hit_this_throw, throws_done
 
     throws_done[currentPlayer] += 1
-
     frame = (throws_done[currentPlayer] - 1) // 2
     throw_index = 0 if currentThrow == 1 else 1
 
@@ -308,6 +319,7 @@ def handle_end_of_throw():
     update_active_player_label()
     prepare_throw()
 
+
 def next_player():
     global currentPlayer
     currentPlayer = (currentPlayer + 1) % len(playerNames)
@@ -317,24 +329,23 @@ def prepare_throw():
     global ball_x, ball_y, ball_dx, ball_dy
 
     ball_x, ball_y = 300, 500
-    canvas.coords(ball, ball_x - ball_radius, ball_y - ball_radius, ball_x + ball_radius, ball_y + ball_radius)
+    canvas.coords(ball, ball_x - ball_radius, ball_y - ball_radius,
+                  ball_x + ball_radius, ball_y + ball_radius)
     canvas.itemconfig(ball, fill=Colors[currentPlayer], outline=OutlineColors[currentPlayer])
 
     ball_dx = random.uniform(-2, 2)
     ball_dy = -7
 
 
+
 def start_simulation():
-    global button_not_pressed_before, playerNames, currentPlayer, currentThrow, ball_dx, ball_dy, throws_done, players_active, scores
-    # Nur wenn der Startbutton noch nicht zuvor gedrückt wurde
-    if button_not_pressed_before == True:
+    global button_not_pressed_before, playerNames, throws_done, players_active
+
+    if button_not_pressed_before:
         button_not_pressed_before = False
 
         n = playerSchieberegler.get()
-        playerNames[:] = [
-            (playerEntries[i].get().strip() or f"Spieler {i+1}")
-            for i in range(n)
-        ]
+        playerNames[:] = [(playerEntries[i].get().strip() or f"Spieler {i+1}") for i in range(n)]
 
         throws_done = [0] * n
         players_active = [True] * n
@@ -347,10 +358,8 @@ def start_simulation():
         update_active_player_label()
         move_ball()
 
+
 button_not_pressed_before = True
 startButton.config(command=start_simulation)
 
 window.mainloop()
-
-
-
