@@ -38,9 +38,9 @@ playerNames = []
 def get_sqlserver_conn():
     conn_str = (
         "DRIVER={ODBC Driver 18 for SQL Server};"
-        f"SERVER={os.getenv('DB_HOST', 'localhost')},{os.getenv('DB_PORT', '1433')};"
-        f"DATABASE={os.getenv('DB_NAME', 'bowling')};"
-        f"UID={os.getenv('DB_USER', 'appuser')};"
+        f"SERVER={os.getenv('DB_HOST', '192.168.10.2')},{os.getenv('DB_PORT', '1433')};"
+        f"DATABASE={os.getenv('DB_NAME', 'BowlingSuite')};"
+        f"UID={os.getenv('DB_USER', 'Administrator')};"
         f"PWD={os.getenv('DB_PASSWORD', 'Pa$$w0rd')};"
         "Encrypt=yes;TrustServerCertificate=yes;"
     )
