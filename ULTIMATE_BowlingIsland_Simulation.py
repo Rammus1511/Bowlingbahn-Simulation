@@ -163,9 +163,16 @@ def update_scoreboard(player, frame, throw_index, fallen_pins):
         f0 = player_scores[player][i][0] or 0
         f1 = player_scores[player][i][1] or 0
         total += f0 + f1
-        #TODO here sql logic for saving data (Player, Bahn, Frame, throw1, throw2, Zwischenergebnis)
+        #TODO here sql logic for saving data (Player, Bahn, Frame, Throw1, Throw2, Zwischenergebnis)
+        
         if i == frame:
+            throw1 = frame_data[0] or 0 
+            throw2 = frame_data[1] or 0
             break
+        
+        upsert_frame_score(player, lane, frame, throw1, throw2, total)
+        break
+        
 
     frame_data[2] = total
 
@@ -336,4 +343,5 @@ button_not_pressed_before = True
 startButton.config(command=start_simulation)
 
 window.mainloop()
+
 
