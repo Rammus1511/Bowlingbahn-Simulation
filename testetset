@@ -33,7 +33,7 @@ namenFrame.pack(side="top", anchor="w", pady=5)
 playerEntries = []
 playerNames = []
 
-#legt fest wie er sich zur SQL-Datenbank verbindet
+# SQL connection
 def get_sqlserver_conn():
     conn_str = (
         "DRIVER={ODBC Driver 18 for SQL Server};"
@@ -69,12 +69,11 @@ activePlayerLabel.pack(side="top", anchor="n")
 canvas = tk.Canvas(window, width=600, height=600, bg="burlywood3", highlightthickness=5, highlightbackground="sienna4")
 canvas.pack(side="left", padx=20)
 
-# Bahnbegrenzung
 canvas.create_rectangle(0,0,50,600, fill="tan3", outline="sienna4", width=5)
 canvas.create_rectangle(559,0,609,600, fill="tan3", outline="sienna4", width=5)
 
 #########################################
-#  SCOREBOARD – KLASSISCHER LOOK
+# SCOREBOARD
 #########################################
 
 scoreboardFrame = tk.Frame(window, bg="white", bd=4, relief="solid")
@@ -86,15 +85,12 @@ frames_per_player = 10
 
 
 def build_scoreboard():
-    """Erzeugt ein klassisches Bowlingcenter-Scoreboard."""
     for widget in scoreboardFrame.winfo_children():
         widget.destroy()
 
-    # Titel
     title = tk.Label(scoreboardFrame, text="SCOREBOARD", font=("Arial", 18, "bold"), fg="black", bg="white")
     title.grid(row=0, column=0, columnspan=frames_per_player + 1, pady=10)
 
-    # Frame-Nummern
     tk.Label(scoreboardFrame, text="Spieler", font=("Arial", 12, "bold"), bg="white", bd=2, relief="solid", width=10).grid(row=1, column=0)
 
     for f in range(frames_per_player):
@@ -102,7 +98,6 @@ def build_scoreboard():
                  font=("Arial", 10, "bold"), bg="white",
                  bd=2, relief="solid", width=12).grid(row=1, column=f + 1)
 
-    # Spielerzeilen
     scoreboard_labels.clear()
     for p, name in enumerate(playerNames):
         row_labels = []
@@ -133,6 +128,8 @@ def reset_scores():
     for _ in playerNames:
         player_scores.append([[None, None, 0] for _ in range(frames_per_player)])
 
+
+### FIX 1: Corrected SQL parameter order
 def upsert_frame_score(player_name: str, lane: int, frame: int, throw1: int, throw2: int, frame_total: int):
     sql = """
         MERGE dbo.turn_ergebnisse AS target
@@ -142,8 +139,8 @@ def upsert_frame_score(player_name: str, lane: int, frame: int, throw1: int, thr
         AND target.frame = src.frame
         WHEN MATCHED THEN
         UPDATE SET
-        target.throw1 = src.throw1
-        target.throw2 = src.throw2
+        target.throw1 = src.throw1,
+        target.throw2 = src.throw2,
         target.frame_total = src.frame_total
         WHEN NOT MATCHED THEN
         INSERT (player_id, lane_id, frame, throw1, throw2, frame_total)
@@ -153,16 +150,18 @@ def upsert_frame_score(player_name: str, lane: int, frame: int, throw1: int, thr
     try:
         conn = get_sqlserver_conn()
         cur = conn.cursor()
-        cur.execute(sql, (lane, player_name, frame, throw1, throw2, frame_total))
+        cur.execute(sql, (player_name, lane, frame, throw1, throw2, frame_total))  # FIXED ORDER
         conn.commit()
-    except Exception:
+    except Exception as e:
+        print("SQL ERROR:", e)
         if conn:
             conn.rollback()
-        raise
     finally:
         if conn:
             conn.close()
 
+
+### FIX 2 + FIX 3 + FIX 4 applied
 def update_scoreboard(player, frame, throw_index, fallen_pins):
     frame_data = player_scores[player][frame]
     frame_data[throw_index] = fallen_pins
@@ -172,16 +171,23 @@ def update_scoreboard(player, frame, throw_index, fallen_pins):
         f0 = player_scores[player][i][0] or 0
         f1 = player_scores[player][i][1] or 0
         total += f0 + f1
-        #TODO here sql logic for saving data (Player, Bahn, Frame, Throw1, Throw2, Zwischenergebnis)
-        
         if i == frame:
             break
-        
-        frame_data[2] = total
- 
-        
 
+    frame_data[2] = total
 
+    # SQL SAVE (minimal fix)
+    try:
+        upsert_frame_score(
+            playerNames[player],
+            bahnSchieberegler.get(),   # FIXED: must be .get()
+            frame,
+            frame_data[0] or 0,
+            frame_data[1] or 0,
+            total
+        )
+    except Exception as e:
+        print("SQL ERROR:", e)
 
     labels = scoreboard_labels[player][frame]
     labels["t1"].config(text=str(frame_data[0] or 0))
@@ -190,7 +196,7 @@ def update_scoreboard(player, frame, throw_index, fallen_pins):
 
 
 #########################################
-#  BOWLING-FUNKTIONEN
+# BOWLING-FUNKTIONEN
 #########################################
 
 pins = []
@@ -325,7 +331,6 @@ def prepare_throw():
 
 def start_simulation():
     global button_not_pressed_before, playerNames, currentPlayer, currentThrow, ball_dx, ball_dy, throws_done, players_active, scores
-    # Nur wenn der Startbutton noch nicht zuvor gedrückt wurde
     if button_not_pressed_before == True:
         button_not_pressed_before = False
 
@@ -350,5 +355,3 @@ button_not_pressed_before = True
 startButton.config(command=start_simulation)
 
 window.mainloop()
-
-
