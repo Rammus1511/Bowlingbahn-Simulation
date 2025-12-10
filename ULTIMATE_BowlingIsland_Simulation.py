@@ -181,18 +181,19 @@ def update_scoreboard(player, frame, throw_index, fallen_pins):
 
     throw1 = frame_data[0] or 0
     throw2 = frame_data[1] or 0
-
-    try:
-        upsert_frame_score(
-            playerNames[player],
-            bahnSchieberegler.get(),
-            frame,
-            throw1,
-            throw2,
-            total
-        )
-    except Exception as e:
-        print("SQL ERROR:", e)
+    
+    if throw_index == 1:
+        try:
+            upsert_frame_score(
+                playerNames[player],
+                bahnSchieberegler.get(),
+                frame,
+                throw1,
+                throw2,
+                total
+            )
+        except Exception as e:
+            print("SQL ERROR:", e)
 
     labels = scoreboard_labels[player][frame]
     labels["t1"].config(text=str(throw1))
