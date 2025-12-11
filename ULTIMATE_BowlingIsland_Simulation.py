@@ -132,8 +132,8 @@ def reset_scores():
 
 # ---------- SQL SAVE ----------
 def upsert_frame_score(player_name: str, lane: int, frame: int, throw1: int, throw2: int, frame_total: int):
-    sql = """         
-MERGE core.turn_ergebnisse AS target
+    sql = """
+         MERGE core.turn_ergebnisse AS target
         USING (
             SELECT
                 ?   AS spieler,
@@ -143,7 +143,7 @@ MERGE core.turn_ergebnisse AS target
                 ?   AS wurf2,
                 ?   AS turn_ergebnisse
             FROM core.bahnen b
-            WHERE b.nummer = ?
+            WHERE b.id = ?
         ) AS src
         ON  target.spieler = src.spieler
         AND target.bahn_id = src.bahn_id
@@ -155,9 +155,8 @@ MERGE core.turn_ergebnisse AS target
         WHEN NOT MATCHED THEN
             INSERT (spieler, bahn_id, turn_nr, wurf1, wurf2, turn_ergebnisse)
             VALUES (src.spieler, src.bahn_id, src.turn_nr, src.wurf1, src.wurf2, src.turn_ergebnisse);
-
     """
-    
+
     conn = None
     try:
         conn = get_sqlserver_conn()
@@ -375,4 +374,3 @@ button_not_pressed_before = True
 startButton.config(command=start_simulation)
 
 window.mainloop()
-
