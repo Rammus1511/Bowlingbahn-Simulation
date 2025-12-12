@@ -270,6 +270,23 @@ def update_active_player_label():
     else:
         activePlayerLabel.config(text="Noch keine Spielernamen eingegeben...")
 
+def animate_strike(rows, index=0, row_delay=120):
+    """
+    Löscht die übergebene Liste von Pin-Reihen nacheinander.
+    rows: Liste von Listen mit Canvas-IDs, z.B. [[id1], [id2,id3], ...]
+    index: aktuelle Reihe, die gelöscht wird
+    row_delay: Pause in ms zwischen den Reihen
+    """
+    if index >= len(rows):
+        return  # fertig
+    # lösche alle Pins in der aktuellen Reihe
+    for pid in rows[index]:
+        try:
+            canvas.delete(pid)
+        except Exception:
+            pass
+    # nächste Reihe nach kurzer Pause
+    window.after(row_delay, lambda: animate_strike(rows, index + 1, row_delay))
 
 def check_collision():
     global pins, pins_hit_this_throw
@@ -280,6 +297,45 @@ def check_collision():
             hit.append(pid)
 
     if hit:
+        # Pocket-Parameter (einfach anpassbar)
+        pocket_offset = 15       # Abstand vom Headpin zum Pocket-Mittelpunkt
+        pocket_threshold = 7    # Toleranz um den Pocket-Mittelpunkt
+
+        # Wenn Headpin getroffen wurde, prüfen ob Pocket -> Strike
+        if pins and pins[0][0] in hit:
+            front_px = pins[0][1]
+            pocket_right = front_px + pocket_offset
+            pocket_left = front_px - pocket_offset
+
+            in_right_pocket = abs(ball_x - pocket_right) <= pocket_threshold
+            in_left_pocket = abs(ball_x - pocket_left) <= pocket_threshold
+
+            if in_right_pocket or in_left_pocket:
+                # Strike: sofort Score setzen, interne Pins leeren und
+                # eine Reihenfolge für die Animation zusammenstellen.
+                # Die Reihenfolge entspricht der Erzeugung in draw_pins:
+                # 1, 2, 3, 4 Pins (vorn nach hinten).
+                # pins enthält Tupel (id, x, y, r) in genau dieser Reihenfolge.
+                # Wir bauen rows als Liste von Listen mit den Canvas-IDs.
+
+                formation_counts = [1, 2, 3, 4]
+                rows = []
+                idx = 0
+                for cnt in formation_counts:
+                    row_ids = [p[0] for p in pins[idx: idx + cnt]]
+                    rows.append(row_ids)
+                    idx += cnt
+
+                # Score sofort als 10 setzen und interne Liste leeren,
+                # damit keine weiteren Kollisionen gezählt werden.
+                pins_hit_this_throw += len(pins)  # sollte 10 sein
+                pins = []
+
+                # Starte die sequentielle Lösch-Animation
+                animate_strike(rows, index=0, row_delay=120)
+                return  # bereits alle Pins als getroffen behandelt
+
+        # Normales Verhalten: entferne nur die tatsächlich getroffenen Pins
         for pid in hit:
             canvas.delete(pid)
         pins_hit_this_throw += len(hit)
